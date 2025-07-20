@@ -1,37 +1,50 @@
-- hosts: jenkins
+---
+- name: Install Jenkins LTS (Official Method) on Jenkins EC2
+  hosts: jenkins
   become: yes
+
   tasks:
-    - name: Update apt
+    - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install required packages
+    - name: Install Java 11 and fontconfig
       apt:
-        name: ['openjdk-11-jdk', 'git', 'docker.io', 'curl']
+        name:
+          - openjdk-11-jdk
+          - fontconfig
         state: present
 
-    - name: Add Jenkins repo
-      shell: |
-        curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo tee \
-          /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-        echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-          https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-          /etc/apt/sources.list.d/jenkins.list > /dev/null
+    - name: Create keyrings directory if it doesn't exist
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Jenkins GPG key to keyrings
+      get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc
+        mode: '0644'
+
+    - name: Add Jenkins apt repository (LTS)
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        filename: jenkins
+
+    - name: Update apt cache after adding Jenkins repo
+      apt:
+        update_cache: yes
 
     - name: Install Jenkins
       apt:
-        update_cache: yes
         name: jenkins
         state: present
 
-    - name: Start Jenkins
-      systemd:
+    - name: Enable and start Jenkins service
+      service:
         name: jenkins
-        enabled: yes
         state: started
+        enabled: yes
 
-    - name: Start Docker
-      systemd:
-        name: docker
-        enabled: yes
-        state: started
