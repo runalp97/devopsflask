@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Clone Repo') {
             steps {
-                git 'https://github.com/youruser/devopsify-flask-app'
+                git 'https://github.com/runalp97/devopsigy-flaskapp.git'
             }
         }
 
